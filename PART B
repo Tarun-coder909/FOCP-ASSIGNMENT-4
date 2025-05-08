@@ -1,0 +1,322 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+const int MAX = 10;
+
+class UniversitySystemException {
+protected:
+    string message;
+
+public:
+    UniversitySystemException(string msg) : message(msg) {}
+    virtual string getMessage() const {
+        return message;
+    }
+};
+
+class EnrollmentException : public UniversitySystemException {
+public:
+    EnrollmentException(string msg) : UniversitySystemException(msg) {}
+};
+
+class GradeException : public UniversitySystemException {
+public:
+    GradeException(string msg) : UniversitySystemException(msg) {}
+};
+
+class PaymentException : public UniversitySystemException {
+public:
+    PaymentException(string msg) : UniversitySystemException(msg) {}
+};
+
+class InvalidIDException : public UniversitySystemException {
+public:
+    InvalidIDException(string msg) : UniversitySystemException(msg) {}
+};
+
+class InvalidContactException : public UniversitySystemException {
+public:
+    InvalidContactException(string msg) : UniversitySystemException(msg) {}
+};
+
+class Professor {
+public:
+    string name;
+    double baseSalary;
+    int yearsOfService;
+    double researchGrants;
+
+    Professor() : name(""), baseSalary(0), yearsOfService(0), researchGrants(0) {}
+    Professor(string name, double baseSalary, int yearsOfService, double researchGrants)
+        : name(name), baseSalary(baseSalary), yearsOfService(yearsOfService), researchGrants(researchGrants) {}
+
+    virtual double calculatePayment() const {
+        return baseSalary + (yearsOfService * 1000) + researchGrants;
+    }
+
+    virtual void displayDetails() const {
+        cout << "Professor: " << name << ", Base Salary: " << baseSalary
+             << ", Years of Service: " << yearsOfService
+             << ", Research Grants: " << researchGrants << endl;
+    }
+};
+
+class AssistantProfessor : public Professor {
+public:
+    AssistantProfessor(string name, double baseSalary, int yearsOfService, double researchGrants)
+        : Professor(name, baseSalary, yearsOfService, researchGrants) {}
+
+    double calculatePayment() const override {
+        return baseSalary + (yearsOfService * 1500) + researchGrants;
+    }
+
+    void displayDetails() const override {
+        Professor::displayDetails();
+        cout << "Rank: Assistant Professor" << endl;
+    }
+};
+
+class GraduateStudent {
+public:
+    string name;
+    Professor* advisor;
+    bool hasTeachingAssistantship;
+    bool hasResearchAssistantship;
+
+    GraduateStudent(string name, Professor* advisor)
+        : name(name), advisor(advisor), hasTeachingAssistantship(false), hasResearchAssistantship(false) {}
+
+    void setTeachingAssistantship(bool status) {
+        hasTeachingAssistantship = status;
+    }
+
+    void setResearchAssistantship(bool status) {
+        hasResearchAssistantship = status;
+    }
+
+    double calculatePayment() const {
+        double payment = 2000;
+        if (hasTeachingAssistantship) payment += 1500;
+        if (hasResearchAssistantship) payment += 1000;
+        return payment;
+    }
+
+    void displayDetails() const {
+        cout << "Graduate Student: " << name << endl;
+        cout << "Advisor: " << advisor->name << endl;
+        cout << "Teaching Assistantship: " << (hasTeachingAssistantship ? "Yes" : "No") << endl;
+        cout << "Research Assistantship: " << (hasResearchAssistantship ? "Yes" : "No") << endl;
+    }
+};
+
+class Course {
+public:
+    string title;
+    Professor* instructor;
+    int maxEnrollment;
+    int currentEnrollment;
+    bool prerequisitesMet;
+
+    Course(string title, Professor* instructor, int maxEnrollment)
+        : title(title), instructor(instructor), maxEnrollment(maxEnrollment), currentEnrollment(0), prerequisitesMet(true) {}
+
+    void enrollStudent() {
+        if (currentEnrollment >= maxEnrollment) {
+            throw EnrollmentException("Course is full: " + title);
+        }
+        if (!prerequisitesMet) {
+            throw EnrollmentException("Prerequisites not met for course: " + title);
+        }
+        currentEnrollment++;
+    }
+
+    void finalizeGrades() {
+        if (currentEnrollment < maxEnrollment) {
+            throw GradeException("Some students have not completed the requirements for course: " + title);
+        }
+    }
+
+    void displayDetails() const {
+        cout << "Course: " << title << ", Instructor: " << instructor->name << endl;
+    }
+};
+
+class EnrollmentManager {
+public:
+    void enrollInCourse(Course* course) {
+        try {
+            course->enrollStudent();
+        }
+        catch (const EnrollmentException& e) {
+            cout << "Enrollment Error: " << e.getMessage() << endl;
+        }
+    }
+};
+
+class GradeBook {
+private:
+    double grade;
+
+public:
+    void assignGrade(double grade) {
+        if (grade < 0.0 || grade > 4.0) {
+            throw GradeException("Invalid grade entry: " + to_string(grade));
+        }
+        this->grade = grade;
+    }
+
+    void changeGrade(double newGrade) {
+        if (newGrade < 0.0 || newGrade > 4.0) {
+            throw GradeException("Unauthorized grade change: " + to_string(newGrade));
+        }
+        grade = newGrade;
+    }
+
+    void finalizeGrades() {
+        if (grade == -1) {
+            throw GradeException("Cannot finalize grades for students who haven't completed the requirements.");
+        }
+    }
+};
+
+class Person {
+protected:
+    string name;
+    string contactInfo;
+    string ID;
+
+public:
+    Person() : name(""), contactInfo(""), ID("") {}
+
+    Person(string name, string contactInfo, string ID) {
+        if (ID.empty()) throw InvalidIDException("Invalid ID assignment: " + ID);
+        if (contactInfo.empty()) throw InvalidContactException("Invalid contact information: " + contactInfo);
+        this->name = name;
+        this->contactInfo = contactInfo;
+        this->ID = ID;
+    }
+
+    virtual double calculatePayment() const {
+        return 0.0;
+    }
+
+    virtual void displayDetails() const {
+        cout << "Person: " << name << ", ID: " << ID << ", Contact: " << contactInfo << endl;
+    }
+};
+
+class University {
+private:
+    Department* departments[MAX];
+    int deptCount;
+
+public:
+    University() : deptCount(0) {}
+
+    void addDepartment(Department* department) {
+        if (deptCount < MAX) {
+            departments[deptCount++] = department;
+        }
+        else {
+            throw EnrollmentException("Max department capacity reached in university.");
+        }
+    }
+
+    void listProfessors() {
+        for (int i = 0; i < deptCount; i++) {
+            Department* dept = departments[i];
+            for (int j = 0; j < dept->getProfessorCount(); j++) {
+                Professor* p = dept->getProfessor(j);
+                cout << "Professor: " << p->name << ", Payment: " << p->calculatePayment() << endl;
+            }
+        }
+    }
+
+    void listGraduateStudents() {
+    }
+};
+
+class Department {
+private:
+    string name;
+    Professor* professors[MAX];
+    Course* courses[MAX];
+    int professorCount;
+    int courseCount;
+
+public:
+    Department(string name) : name(name), professorCount(0), courseCount(0) {}
+
+    void addProfessor(Professor* professor) {
+        if (professorCount < MAX) {
+            professors[professorCount++] = professor;
+        }
+        else {
+            throw EnrollmentException("Max professor capacity reached in department: " + name);
+        }
+    }
+
+    void addCourse(Course* course) {
+        if (courseCount < MAX) {
+            courses[courseCount++] = course;
+        }
+        else {
+            throw EnrollmentException("Max course capacity reached in department: " + name);
+        }
+    }
+
+    string getName() const {
+        return name;
+    }
+
+    Professor* getProfessor(int i) {
+        if (i >= 0 && i < professorCount) return professors[i];
+        throw EnrollmentException("Professor index out of bounds.");
+    }
+
+    int getProfessorCount() const {
+        return professorCount;
+    }
+
+    Course* getCourse(int i) {
+        if (i >= 0 && i < courseCount) return courses[i];
+        throw EnrollmentException("Course index out of bounds.");
+    }
+
+    int getCourseCount() const {
+        return courseCount;
+    }
+};
+
+class Course {
+public:
+    string title;
+    Professor* instructor;
+    int maxEnrollment;
+    int currentEnrollment;
+    bool prerequisitesMet;
+
+    Course(string title, Professor* instructor, int maxEnrollment)
+        : title(title), instructor(instructor), maxEnrollment(maxEnrollment), currentEnrollment(0), prerequisitesMet(true) {}
+
+    void enrollStudent() {
+        if (currentEnrollment >= maxEnrollment) {
+            throw EnrollmentException("Course is full: " + title);
+        }
+        if (!prerequisitesMet) {
+            throw EnrollmentException("Prerequisites not met for course: " + title);
+        }
+        currentEnrollment++;
+    }
+
+    void finalizeGrades() {
+        if (currentEnrollment < maxEnrollment) {
+            throw GradeException("Some students have not completed the requirements for course: " + title);
+        }
+    }
+
+    void displayDetails() const {
+        cout << "Course: " << title << ", Instructor: " << instructor->name << endl;
+    }
+};
